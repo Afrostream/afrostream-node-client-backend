@@ -12,7 +12,7 @@ default header behavior is :
 
 ## create client
 
-```
+```js
 var Client = require('afrostream-node-client-backend');
 var client = new Client({
   apiKey: "42424242",
@@ -22,7 +22,7 @@ var client = new Client({
 
 ## request the backend api
 
-```
+```js
 client.get('/api/movies')
   .then(
   function success(body) {
@@ -39,43 +39,43 @@ client.delete('...');
 
 you can overwrite the oauth bearer token using options
 
-```
+```js
 client.get('/api/movies', { token: '42424242' }).then(function success(body) { });
 ```
 
 you can overwrite request options using options 
 
-```
+```js
 client.get('/api/movies', { method: 'POST' }).then(...);
 ```
 
 ## request backend fwding input req infos
 
-```
+```js
 client.get('/api/movies', { req: req }).then(...); // will add x-forwarded-user-ip & content-type header
 ```
 
 ## request backend without auth
 
-```
+```js
 client.get('/api/movies', { token: null }).then(...);
 ```
 
 ## proxy requests to the backend
 
-```
+```js
 client.proxy(req, res);
 ```
 
 ## fwd response
 
-```
+```js
 client.get('/api/movies').nodeify(client.fwd(res));
 ```
 
 ## low level requests
 
-```
+```js
 client.request({uri:'/api/movies'}).then(function (data) {
     var response = data[0];
     var body = data[1];
@@ -87,8 +87,8 @@ client.request({uri:'/api/movies'}).then(function (data) {
 
 ## high level requests
 
-```
-client.custom({uri: '/api/movies'}).then(function (body) {
+```js
+client.custom({method: 'GET', uri: '/api/movies'}).then(function (body) {
     // only 200OK responses
     console.log(body)
 }, function (err) {
