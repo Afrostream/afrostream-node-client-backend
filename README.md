@@ -71,6 +71,8 @@ client.proxy(req, res);
 client.proxy(req, res, { qs: { foo: "bar" }, token: null });
 ```
 
+proxy default behavior : do not follow redirect.
+
 ## fwd response
 
 ```js

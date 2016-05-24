@@ -221,7 +221,15 @@ Client.prototype.proxy = function (req, res, queryOptions) {
 
   return this.getToken()
     .then(function (clientToken) {
-      queryOptions = _.merge({ method: req.method, req: req, qs: req.query, body: req.body, uri: req.originalUrl, token: clientToken.access_token }, queryOptions);
+      queryOptions = _.merge({
+        method: req.method,
+        req: req,
+        qs: req.query,
+        body: req.body,
+        uri: req.originalUrl,
+        token: clientToken.access_token,
+        followRedirect: false
+      }, queryOptions);
       return that.request(queryOptions);
     })
     .nodeify(this.fwd(res));
