@@ -228,7 +228,7 @@ Client.prototype.proxy = function (req, res, queryOptions) {
 Client.prototype.fwd = function (res) {
   return function (err, data) {
     if (err) {
-      res.status(500).json({error: String(err)});
+      res.status(err.statusCode || 500).json({error: err.message});
     } else {
       var backendResponse = data[0]
         , backendBody = data[1];
