@@ -215,7 +215,7 @@ Client.prototype.delete = function () {
 Client.prototype.proxy = function (req, res) {
   assert(['GET', 'POST', 'PUT', 'DELETE'].indexOf(req.method) !== -1);
 
-  var queryOptions = { method: req.method, req: req, qs: req.query, body: req.body };
+  var queryOptions = { method: req.method, req: req, qs: req.query, body: req.body, uri: req.originalUrl };
   return this.request(queryOptions)
     .then(this.fwd(res));
 };
