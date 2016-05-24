@@ -2,6 +2,8 @@
 
 var assert = require('better-assert');
 
+var util = require('util');
+
 var _ = require('lodash');
 var Q = require('q');
 var request = require('request');
@@ -40,7 +42,7 @@ Client.prototype.request = function (inputQueryOptions) {
   assert(typeof inputQueryOptions.uri === 'string');
 
   var requestId = ++this.requestId;
-  var silent = this.silent;
+  var silent = (typeof inputQueryOptions.silent !== 'undefined') ? inputQueryOptions.silent : this.silent;
   //
   var defaultQueryOptions = this.defaultQueryOptions; // json, timeout, ...
   var computedQueryOptions = {};                      // headers forwarded to backend (x-forwarded-(user-ip,agent)|Content-type)
@@ -71,25 +73,25 @@ Client.prototype.request = function (inputQueryOptions) {
   // result
   queryOptions = _.merge({}, defaultQueryOptions, computedQueryOptions, inputQueryOptions, rewritedQueryOptions);
   if (!silent) {
-    console.log('[INFO]: [CLIENT-BACKEND]: [' + requestId + ']: call ' + JSON.stringify(queryOptions));
+    console.log('[INFO]: [CLIENT-BACKEND]: [' + requestId + ']: call ' + util.inspect(queryOptions));
   }
 
   return Q.nfcall(request, queryOptions)
     .then(
     function (data) {
       if (!data[0]) {
-        console.log('[WARNING]: [CLIENT-BACKEND]: [' + requestId + ']: no response for ' + JSON.stringify(queryOptions));
+        console.log('[WARNING]: [CLIENT-BACKEND]: [' + requestId + ']: no response for ' + util.inspect(queryOptions));
         throw new Error('no response');
       } else {
         if (!silent) {
-          console.log('[INFO]: [CLIENT-BACKEND]: [' + requestId + ']: ' + data[0].statusCode + ' ' + JSON.stringify(data[1]));
+          console.log('[INFO]: [CLIENT-BACKEND]: [' + requestId + ']: ' + data[0].statusCode + ' ' + util.inspect(data[1]));
         }
       }
       data[0].requestId = requestId;
       return data;
     },
     function (err) {
-      console.error('[ERROR]: [CLIENT-BACKEND]: [' + requestId + ']: ' + err.message + ' for ' + JSON.stringify(queryOptions));
+      console.error('[ERROR]: [CLIENT-BACKEND]: [' + requestId + ']: ' + err.message + ' for ' + util.inspect(queryOptions));
       var error = new Error(err.message);
       error.statusCode = 500;
       throw error;
@@ -222,13 +224,13 @@ Client.prototype.proxy = function (req, res, queryOptions) {
       queryOptions = _.merge({ method: req.method, req: req, qs: req.query, body: req.body, uri: req.originalUrl, token: clientToken.access_token }, queryOptions);
       return that.request(queryOptions);
     })
-    .then(this.fwd(res));
+    .nodeify(this.fwd(res));
 };
 
 Client.prototype.fwd = function (res) {
   return function (err, data) {
     if (err) {
-      res.status(err.statusCode || 500).json({error: err.message});
+      res.status(err.statusCode || 500).json({error: err.message || 'unknown error'});
     } else {
       var backendResponse = data[0]
         , backendBody = data[1];
