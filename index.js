@@ -212,11 +212,16 @@ Client.prototype.delete = function () {
     });
 };
 
-Client.prototype.proxy = function (req, res) {
+Client.prototype.proxy = function (req, res, queryOptions) {
   assert(['GET', 'POST', 'PUT', 'DELETE'].indexOf(req.method) !== -1);
 
-  var queryOptions = { method: req.method, req: req, qs: req.query, body: req.body, uri: req.originalUrl };
-  return this.request(queryOptions)
+  var that = this;
+
+  return this.getToken()
+    .then(function (clientToken) {
+      queryOptions = _.merge({ method: req.method, req: req, qs: req.query, body: req.body, uri: req.originalUrl, token: clientToken.access_token }, queryOptions);
+      return that.request(queryOptions);
+    })
     .then(this.fwd(res));
 };
 

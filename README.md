@@ -67,6 +67,10 @@ client.get('/api/movies', { token: null }).then(...);
 client.proxy(req, res);
 ```
 
+```js
+client.proxy(req, res, { qs: { foo: "bar" }, token: null });
+```
+
 ## fwd response
 
 ```js
