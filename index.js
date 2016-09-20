@@ -6,7 +6,7 @@ var util = require('util');
 
 var _ = require('lodash');
 var Q = require('q');
-var request = require('request');
+var afrostreamNodeRequest = require('afrostream-node-request');
 
 var config = require('./config');
 
@@ -15,105 +15,13 @@ var Client = function (options) {
   assert(typeof options.apiKey === 'string' && options.apiKey, 'missing apiKey');
   assert(typeof options.apiSecret === 'string' && options.apiSecret, 'missing apiSecret');
 
-  this.silent = (options.silent === false) ? false : true;
-  this.requestId = 0;
-  this.defaultQueryOptions = { json: true, timeout: options.timeout || 2000 };
   this.config = _.merge({}, config, options.config);
   this.apiKey = options.apiKey;
   this.apiSecret = options.apiSecret;
-  // advanced configuration
-  this.successHttpCodeList = options.successHttpCodeList || [ 200 ];
   // internal state
   this.token = null;
-};
-
-/**
- * low level request to backend
- *   pre-configured options : { json: true }
- * + relative to absolute path convertion for "uri" string
- *
- * @param queryOptions  @see request library options.
- * @return Promise<[response, body]|Error>
- * @example:
- *   client.request({uri:'/api/movies'}).then(...)
- */
-Client.prototype.request = function (inputQueryOptions) {
-  assert(inputQueryOptions);
-  assert(typeof inputQueryOptions.uri === 'string');
-
-  var requestId = ++this.requestId;
-  var silent = (typeof inputQueryOptions.silent !== 'undefined') ? inputQueryOptions.silent : this.silent;
   //
-  var defaultQueryOptions = this.defaultQueryOptions; // json, timeout, ...
-  var computedQueryOptions = {};                      // headers forwarded to backend (x-forwarded-(user-ip,agent)|Content-type)
-  // inputQueryOptions                                // input code options
-  var rewritedQueryOptions = {};                      // uri
-  var queryOptions = {};                              // result
-
-  // forwarding input request info to the backend
-  if (inputQueryOptions.req) {
-    computedQueryOptions = {
-      headers: {
-        'x-forwarded-user-ip': inputQueryOptions.req.userIp,
-        'x-forwarded-user-agent': inputQueryOptions.req.get('User-Agent'),
-        'Content-Type': inputQueryOptions.req.get('Content-Type')
-      }
-    }
-  }
-
-  if (inputQueryOptions.token) {
-    _.merge(computedQueryOptions, { headers: { Authorization: 'Bearer ' + inputQueryOptions.token } });
-  }
-
-  // processing uri
-  if (inputQueryOptions.uri.substr(0, 4) !== 'http') {
-    rewritedQueryOptions.uri = this.config['afrostream-back-end'].baseUrl + inputQueryOptions.uri;
-  }
-
-  // result
-  queryOptions = _.merge({}, defaultQueryOptions, computedQueryOptions, inputQueryOptions, rewritedQueryOptions);
-  if (!silent) {
-    console.log('[INFO]: [CLIENT-BACKEND]: [' + requestId + ']: call ' + util.inspect(queryOptions));
-  }
-
-  return Q.nfcall(request, queryOptions)
-    .then(
-    function (data) {
-      if (!data[0]) {
-        console.log('[WARNING]: [CLIENT-BACKEND]: [' + requestId + ']: no response for ' + util.inspect(queryOptions));
-        throw new Error('no response');
-      } else {
-        if (!silent) {
-          console.log('[INFO]: [CLIENT-BACKEND]: [' + requestId + ']: ' + data[0].statusCode + ' ' + util.inspect(data[1]));
-        }
-      }
-      data[0].requestId = requestId;
-      return data;
-    },
-    function (err) {
-      console.error('[ERROR]: [CLIENT-BACKEND]: [' + requestId + ']: ' + err.message + ' for ' + util.inspect(queryOptions));
-      var error = new Error(err.message);
-      error.statusCode = 500;
-      throw error;
-    });
-};
-
-Client.prototype.custom = function (queryOptions) {
-  var that = this;
-
-  return this.request(queryOptions)
-    .then(function (data) {
-      var response = data[0]
-        , body = data[1];
-
-      if (that.successHttpCodeList.indexOf(response.statusCode) === -1) {
-        console.log('[WARNING]: [CLIENT-BACKEND]: [' + response.requestId + ']: ' + data[0].statusCode + ' ' + JSON.stringify(body));
-        var error = new Error(body && body.error || 'unknown');
-        error.statusCode = response.statusCode || 500;
-        throw error;
-      }
-      return body;
-    });
+  this.request = afrostreamNodeRequest.create({baseUrl:this.config['afrostream-back-end'].baseUrl});
 };
 
 Client.prototype.isTokenValid = function (token) {
@@ -126,7 +34,7 @@ Client.prototype.getToken = function () {
   if (this.isTokenValid(this.token)) {
     return Q(this.token);
   }
-  return this.custom({
+  return this.request({
     method: 'POST',
     uri: '/auth/oauth2/token',
     body: {
@@ -155,7 +63,7 @@ Client.prototype.get = function () {
   return this.getToken()
     .then(function (clientToken) {
       queryOptions = (typeof queryOptions === 'string') ? { uri: queryOptions } : queryOptions;
-      return that.custom(_.merge({ token: clientToken.access_token }, queryOptions));
+      return that.request(_.merge({ token: clientToken.access_token }, queryOptions));
     });
 };
 
@@ -173,7 +81,7 @@ Client.prototype.post = function () {
 
   return this.getToken()
     .then(function (clientToken) {
-      return that.custom(_.merge({ method: 'POST', token: clientToken.access_token }, queryOptions));
+      return that.request(_.merge({ method: 'POST', token: clientToken.access_token }, queryOptions));
     });
 };
 
@@ -191,7 +99,7 @@ Client.prototype.put = function () {
 
   return this.getToken()
     .then(function (clientToken) {
-      return that.custom(_.merge({ method: 'PUT', token: clientToken.access_token }, queryOptions));
+      return that.request(_.merge({ method: 'PUT', token: clientToken.access_token }, queryOptions));
     });
 };
 
@@ -210,7 +118,7 @@ Client.prototype.delete = function () {
   return this.getToken()
     .then(function (clientToken) {
       queryOptions = (typeof queryOptions === 'string') ? { uri: queryOptions } : queryOptions;
-      return that.custom(_.merge({ method: 'DELETE', token: clientToken.access_token }, queryOptions));
+      return that.request(_.merge({ method: 'DELETE', token: clientToken.access_token }, queryOptions));
     });
 };
 
