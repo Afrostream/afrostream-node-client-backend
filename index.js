@@ -42,8 +42,8 @@ Client.prototype.getToken = function () {
       client_id: this.apiKey,
       client_secret: this.apiSecret
     }
-  }).then(function (body) {
-    that.token = body;
+  }).then(function (data) {
+    that.token = data[1];
     that.token.expires_at = new Date(Date.now() + 1000 * that.token.expires_in).toISOString();
     return that.token;
   });
@@ -64,6 +64,9 @@ Client.prototype.get = function () {
     .then(function (clientToken) {
       queryOptions = (typeof queryOptions === 'string') ? { uri: queryOptions } : queryOptions;
       return that.request(_.merge({ token: clientToken.access_token }, queryOptions));
+    })
+    .then(function (data) {
+      return data[1]; // body
     });
 };
 
@@ -82,6 +85,9 @@ Client.prototype.post = function () {
   return this.getToken()
     .then(function (clientToken) {
       return that.request(_.merge({ method: 'POST', token: clientToken.access_token }, queryOptions));
+    })
+    .then(function (data) {
+      return data[1]; // body
     });
 };
 
@@ -100,6 +106,9 @@ Client.prototype.put = function () {
   return this.getToken()
     .then(function (clientToken) {
       return that.request(_.merge({ method: 'PUT', token: clientToken.access_token }, queryOptions));
+    })
+    .then(function (data) {
+      return data[1]; // body
     });
 };
 
@@ -119,6 +128,9 @@ Client.prototype.delete = function () {
     .then(function (clientToken) {
       queryOptions = (typeof queryOptions === 'string') ? { uri: queryOptions } : queryOptions;
       return that.request(_.merge({ method: 'DELETE', token: clientToken.access_token }, queryOptions));
+    })
+    .then(function (data) {
+      return data[1]; // body
     });
 };
 
@@ -136,7 +148,8 @@ Client.prototype.proxy = function (req, res, queryOptions) {
         body: req.body,
         uri: req.originalUrl,
         token: clientToken.access_token,
-        followRedirect: false
+        followRedirect: false,
+        filter: null
       }, queryOptions);
       return that.request(queryOptions);
     })
