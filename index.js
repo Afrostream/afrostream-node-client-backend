@@ -143,7 +143,7 @@ Client.prototype.proxy = function (req, res, queryOptions) {
     .then(function (clientToken) {
       queryOptions = _.merge({
         method: req.method,
-        req: req,
+        context: { req: req },
         qs: req.query,
         body: req.body,
         uri: req.originalUrl,
