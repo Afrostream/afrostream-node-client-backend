@@ -6,6 +6,8 @@ var util = require('util');
 
 var _ = require('lodash');
 var Q = require('q');
+var httpProxy = require('http-proxy');
+
 var afrostreamNodeRequest = require('afrostream-node-request');
 
 var config = require('./config');
@@ -22,6 +24,8 @@ var Client = function (options) {
   this.token = null;
   //
   this.request = afrostreamNodeRequest.create({baseUrl:this.config['afrostream-back-end'].baseUrl});
+  //
+  this.nodeHttpProxy = httpProxy.createProxyServer(options);
 };
 
 Client.prototype.isTokenValid = function (token) {
@@ -139,21 +143,45 @@ Client.prototype.proxy = function (req, res, queryOptions) {
 
   var that = this;
 
-  return this.getToken()
-    .then(function (clientToken) {
-      queryOptions = _.merge({
-        method: req.method,
-        context: { req: req },
-        qs: req.query,
-        body: req.body,
-        uri: req.originalUrl,
-        token: clientToken.access_token,
-        followRedirect: false,
-        filter: null
-      }, queryOptions);
-      return that.request(queryOptions);
-    })
-    .nodeify(this.fwd(res));
+  if ((req.get('content-type') || '').indexOf('multipart/form-data') !== -1) {
+    return this.getToken()
+      .then(function (clientToken) {
+        queryOptions = _.merge({
+          token: clientToken.access_token
+        }, queryOptions);
+
+        console.log('[WARNING]: cannot handle Content-Type: '+req.get('content-type'));
+        console.log('[WARNING]: using http-proxy for ' + req.method + ' ' + req.originalUrl);
+        console.log('[WARNING]: headers : ' + JSON.stringify(req.headers));
+
+        that.nodeHttpProxy.web(req, res, {
+          target: that.config['afrostream-back-end'].baseUrl + req.originalUrl,
+          changeOrigin: true,
+          headers: {
+            'x-forwarded-user-ip': req.get('x-forwarded-user-ip') || req.userIp || '',
+            'x-forwarded-user-agent': req.get('x-forwarded-user-agent') || req.get('User-Agent') || '',
+            'Content-Type': req.get('Content-Type') || '',
+            'Authorization': 'Bearer ' + queryOptions.token // bof bof..
+          }
+        });
+      });
+    } else {
+      // manual proxy for basic requests...
+      return this.getToken()
+        .then(function (clientToken) {
+          queryOptions = _.merge({
+            method: req.method,
+            context: { req: req },
+            qs: req.query,
+            body: req.body,
+            uri: req.originalUrl,
+            token: clientToken.access_token,
+            followRedirect: false,
+            filter: null
+          }, queryOptions);
+          return that.request(queryOptions);
+        }).nodeify(this.fwd(res));
+    }
 };
 
 Client.prototype.fwd = function (res) {
