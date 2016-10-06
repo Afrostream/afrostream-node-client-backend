@@ -26,6 +26,8 @@ describe('client', function () {
 describe('client.get', function () {
   describe('client.get("/api/movies")', function () {
     it ('should return a body with 200 ok', function (done) {
+      this.timeout(15000);
+
       var client = new Client({
         apiKey: apiKey,
         apiSecret: apiSecret

@@ -192,17 +192,11 @@ Client.prototype.fwd = function (res) {
       var backendResponse = data[0]
         , backendBody = data[1];
 
-      switch (backendResponse.statusCode) {
-        case 301:
-        case 302:
-          if (backendResponse.headers &&
-            backendResponse.headers.location) {
-            res.set('location', backendResponse.headers.location);
-          }
-          break;
-        default:
-          break;
-      }
+      // fwd des headers du backend vers le front
+      Object.keys(backendResponse && backendResponse.headers || {}).forEach(function (k) {
+        res.set(k, backendResponse.headers[k]);
+      });
+
       res.status(backendResponse.statusCode || 500).json(backendBody);
     }
   };
