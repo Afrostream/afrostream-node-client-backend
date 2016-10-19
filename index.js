@@ -25,7 +25,7 @@ var Client = function (options) {
   //
   this.request = afrostreamNodeRequest.create({baseUrl:this.config['afrostream-back-end'].baseUrl});
   //
-  this.nodeHttpProxy = httpProxy.createProxyServer(options);
+  this.nodeHttpProxy = httpProxy.createProxyServer();
 };
 
 Client.prototype.isTokenValid = function (token) {
@@ -154,8 +154,11 @@ Client.prototype.proxy = function (req, res, queryOptions) {
         console.log('[WARNING]: using http-proxy for ' + req.method + ' ' + req.originalUrl);
         console.log('[WARNING]: headers : ' + JSON.stringify(req.headers));
 
+        // express is rewriting req.url
+        req.url = req.originalUrl;
+
         that.nodeHttpProxy.web(req, res, {
-          target: that.config['afrostream-back-end'].baseUrl + req.originalUrl,
+          target: that.config['afrostream-back-end'].baseUrl,
           changeOrigin: true,
           headers: {
             'x-forwarded-user-ip': req.get('x-forwarded-user-ip') || req.userIp || '',
