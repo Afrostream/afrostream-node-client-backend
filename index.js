@@ -138,7 +138,7 @@ Client.prototype.delete = function () {
     });
 };
 
-Client.prototype.proxy = function (req, res, queryOptions) {
+Client.prototype.proxy = function (req, res, queryOptions, responseOptions) {
   assert(['GET', 'POST', 'PUT', 'DELETE'].indexOf(req.method) !== -1);
 
   var that = this;
@@ -183,11 +183,11 @@ Client.prototype.proxy = function (req, res, queryOptions) {
             filter: null
           }, queryOptions);
           return that.request(queryOptions);
-        }).nodeify(this.fwd(res));
+        }).nodeify(this.fwd(res, responseOptions));
     }
 };
 
-Client.prototype.fwd = function (res) {
+Client.prototype.fwd = function (res, options) {
   return function (err, data) {
     if (err) {
       res.status(err.statusCode || 500).json({error: err.message || 'unknown error'});
@@ -199,6 +199,10 @@ Client.prototype.fwd = function (res) {
       Object.keys(backendResponse && backendResponse.headers || {}).forEach(function (k) {
         res.set(k, backendResponse.headers[k]);
       });
+
+      if (options && typeof options.hookBeforeSendSync === 'function') {
+        options.hookBeforeSendSync(res);
+      }
 
       res.status(backendResponse.statusCode || 500).json(backendBody);
     }
