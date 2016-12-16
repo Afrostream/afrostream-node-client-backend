@@ -56,6 +56,7 @@ Client.prototype.getToken = function () {
 Client.prototype.get = function () {
   // parsing parameters
   var queryOptions = arguments[0];
+  var options = arguments[1] || {};
   if (typeof queryOptions === 'string') {
     queryOptions = { uri: queryOptions };
   }
@@ -70,6 +71,9 @@ Client.prototype.get = function () {
       return that.request(_.merge({ token: clientToken.access_token }, queryOptions));
     })
     .then(function (data) {
+      if (options.returnResponse) {
+        return data;
+      }
       return data[1]; // body
     });
 };
@@ -77,8 +81,10 @@ Client.prototype.get = function () {
 Client.prototype.post = function () {
   // parsing parameters
   var queryOptions = arguments[0];
+  var options = arguments[1] || {};
   if (typeof queryOptions === 'string') {
     queryOptions = { uri: queryOptions, body: arguments[1] || {} };
+    options = arguments[2] || {};
   }
 
   //
@@ -91,6 +97,9 @@ Client.prototype.post = function () {
       return that.request(_.merge({ method: 'POST', token: clientToken.access_token }, queryOptions));
     })
     .then(function (data) {
+      if (options.returnResponse) {
+        return data;
+      }
       return data[1]; // body
     });
 };
@@ -98,8 +107,10 @@ Client.prototype.post = function () {
 Client.prototype.put = function () {
   // parsing parameters
   var queryOptions = arguments[0];
+  var options = arguments[1] || {};
   if (typeof queryOptions === 'string') {
     queryOptions = { uri: queryOptions, body: arguments[1] || {} };
+    options = arguments[2] || {};
   }
 
   //
@@ -112,6 +123,9 @@ Client.prototype.put = function () {
       return that.request(_.merge({ method: 'PUT', token: clientToken.access_token }, queryOptions));
     })
     .then(function (data) {
+      if (options.returnResponse) {
+        return data;
+      }
       return data[1]; // body
     });
 };
@@ -119,6 +133,7 @@ Client.prototype.put = function () {
 Client.prototype.delete = function () {
   // parsing parameters
   var queryOptions = arguments[0];
+  var options = arguments[1] || {};
   if (typeof queryOptions === 'string') {
     queryOptions = { uri: queryOptions };
   }
@@ -134,6 +149,9 @@ Client.prototype.delete = function () {
       return that.request(_.merge({ method: 'DELETE', token: clientToken.access_token }, queryOptions));
     })
     .then(function (data) {
+      if (options.returnResponse) {
+        return data;
+      }
       return data[1]; // body
     });
 };
