@@ -222,7 +222,9 @@ Client.prototype.fwd = function (res, options) {
         options.hookBeforeSendSync(res);
       }
 
-      res.status(backendResponse.statusCode || 500).json(backendBody);
+      // sending json or text ?
+      var f = (typeof backendBody === 'string') ? 'send' : 'json';
+      res.status(backendResponse.statusCode || 500)[f](backendBody);
     }
   };
 };
