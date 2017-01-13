@@ -23,7 +23,7 @@ var Client = function (options) {
   // internal state
   this.token = null;
   //
-  this.request = afrostreamNodeRequest.create({baseUrl:this.config['afrostream-back-end'].baseUrl});
+  this.request = afrostreamNodeRequest.create({baseUrl:options.baseUrl||this.config['afrostream-back-end'].baseUrl});
   //
   this.nodeHttpProxy = httpProxy.createProxyServer();
 };
